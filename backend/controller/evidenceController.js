@@ -1,11 +1,7 @@
-import express from 'express';
 import Evidence from '../models/Evidence.js';
-import { simpleAuth } from '../middleware/auth.js';
 
-const router = express.Router();
-
-// Receive POST requests from ESP8266 hardware
-router.post('/hardware', async (req, res) => {
+// POST: /api/evidence/hardware
+export const receiveFromHardware = async (req, res) => {
   try {
     const { tagId, location, status, description } = req.body;
 
@@ -26,7 +22,6 @@ router.post('/hardware', async (req, res) => {
     });
 
     await evidence.save();
-
     res.status(201).json({
       message: 'Evidence data received successfully',
       data: evidence
@@ -35,10 +30,10 @@ router.post('/hardware', async (req, res) => {
     console.error('Error saving evidence:', error);
     res.status(500).json({ message: 'Error saving evidence data', error: error.message });
   }
-});
+};
 
-// Get all evidence (for dashboard)
-router.get('/', simpleAuth, async (req, res) => {
+// GET: /api/evidence/
+export const getAllEvidence = async (req, res) => {
   try {
     const evidence = await Evidence.find().sort({ timestamp: -1 });
     res.status(200).json(evidence);
@@ -46,10 +41,10 @@ router.get('/', simpleAuth, async (req, res) => {
     console.error('Error fetching evidence:', error);
     res.status(500).json({ message: 'Error fetching evidence', error: error.message });
   }
-});
+};
 
-// Get single evidence by ID
-router.get('/:id', simpleAuth, async (req, res) => {
+// GET: /api/evidence/:id
+export const getEvidenceById = async (req, res) => {
   try {
     const evidence = await Evidence.findById(req.params.id);
     if (!evidence) {
@@ -60,10 +55,10 @@ router.get('/:id', simpleAuth, async (req, res) => {
     console.error('Error fetching evidence:', error);
     res.status(500).json({ message: 'Error fetching evidence', error: error.message });
   }
-});
+};
 
-// Update evidence
-router.put('/:id', simpleAuth, async (req, res) => {
+// PUT: /api/evidence/:id
+export const updateEvidence = async (req, res) => {
   try {
     const { status, location, description } = req.body;
     const updateData = {};
@@ -88,10 +83,10 @@ router.put('/:id', simpleAuth, async (req, res) => {
     console.error('Error updating evidence:', error);
     res.status(500).json({ message: 'Error updating evidence', error: error.message });
   }
-});
+};
 
-// Delete evidence
-router.delete('/:id', simpleAuth, async (req, res) => {
+// DELETE: /api/evidence/:id
+export const deleteEvidence = async (req, res) => {
   try {
     const evidence = await Evidence.findByIdAndDelete(req.params.id);
     if (!evidence) {
@@ -102,10 +97,10 @@ router.delete('/:id', simpleAuth, async (req, res) => {
     console.error('Error deleting evidence:', error);
     res.status(500).json({ message: 'Error deleting evidence', error: error.message });
   }
-});
+};
 
-// Mark evidence as viewed (remove new flag)
-router.patch('/:id/mark-viewed', simpleAuth, async (req, res) => {
+// PATCH: /api/evidence/:id/mark-viewed
+export const markEvidenceViewed = async (req, res) => {
   try {
     const evidence = await Evidence.findByIdAndUpdate(
       req.params.id,
@@ -119,9 +114,7 @@ router.patch('/:id/mark-viewed', simpleAuth, async (req, res) => {
 
     res.status(200).json(evidence);
   } catch (error) {
-    console.error('Error updating evidence:', error);
+    console.error('Error marking evidence viewed:', error);
     res.status(500).json({ message: 'Error updating evidence', error: error.message });
   }
-});
-
-export default router;
+};
