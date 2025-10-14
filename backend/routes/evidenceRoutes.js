@@ -11,11 +11,11 @@ import {
 
 const router = express.Router();
 
-// Routes
-router.post('/hardware', receiveFromHardware);                
-router.get('/', simpleAuth, getAllEvidence);                  
-router.get('/:id', simpleAuth, getEvidenceById);             
-router.put('/:id', simpleAuth, updateEvidence);             
+// Evidence Routes
+router.post('/hardware', receiveFromHardware);               
+router.get('/', simpleAuth, getAllEvidence);                 
+router.get('/:id', simpleAuth, getEvidenceById);            
+router.put('/:id', simpleAuth, updateEvidence);               
 router.delete('/:id', simpleAuth, deleteEvidence);           
 router.patch('/:id/mark-viewed', simpleAuth, markEvidenceViewed); 
 

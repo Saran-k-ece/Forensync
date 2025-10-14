@@ -10,6 +10,24 @@ const evidenceSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  evidenceName: {
+    type: String,
+    required: true
+  },
+  evidenceType: {
+    type: String,
+    enum: [
+      'Select Type',
+      'Physical',
+      'Digital',
+      'Documentary',
+      'Biological',
+      'Chemical',
+      'Trace',
+      'Audio/Visual'
+    ],
+    required: true
+  },
   timestamp: {
     type: Date,
     default: Date.now

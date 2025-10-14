@@ -3,10 +3,12 @@ import Evidence from '../models/Evidence.js';
 // POST: /api/evidence/hardware
 export const receiveFromHardware = async (req, res) => {
   try {
-    const { tagId, location, status, description } = req.body;
+    const { tagId, location, status, description, evidenceName, evidenceType } = req.body;
 
-    if (!tagId || !location) {
-      return res.status(400).json({ message: 'Tag ID and location are required' });
+    if (!tagId || !location || !evidenceName || !evidenceType) {
+      return res.status(400).json({
+        message: 'Tag ID, location, evidence name, and evidence type are required'
+      });
     }
 
     const evidenceId = `EV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
@@ -14,6 +16,8 @@ export const receiveFromHardware = async (req, res) => {
     const evidence = new Evidence({
       evidenceId,
       tagId,
+      evidenceName,
+      evidenceType,
       location,
       status: status || 'Collected',
       description: description || '',
@@ -60,12 +64,14 @@ export const getEvidenceById = async (req, res) => {
 // PUT: /api/evidence/:id
 export const updateEvidence = async (req, res) => {
   try {
-    const { status, location, description } = req.body;
+    const { status, location, description, evidenceName, evidenceType } = req.body;
     const updateData = {};
 
     if (status) updateData.status = status;
     if (location) updateData.location = location;
     if (description !== undefined) updateData.description = description;
+    if (evidenceName) updateData.evidenceName = evidenceName;
+    if (evidenceType) updateData.evidenceType = evidenceType;
     updateData.isNew = false;
 
     const evidence = await Evidence.findByIdAndUpdate(

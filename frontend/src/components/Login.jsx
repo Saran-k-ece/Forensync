@@ -90,11 +90,7 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-800 text-center">
-              Default credentials: admin / admin123
-            </p>
-          </div>
+         
         </div>
       </div>
     </div>
