@@ -49,6 +49,11 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
         location: item.location,
         status: item.status,
         description: item.description || '',
+        submittedBy: item.submittedBy || '',
+        officerName: item.officerName || '',
+        complainantName: item.complainantName || '',
+        contact: item.contact || '',
+        chainOfCustody: item.chainOfCustody || ''
       });
       setPasswordModal({ open: false, item: null });
     } else {
@@ -58,7 +63,7 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
 
   const handleAddSubmit = async (id) => {
     if (!formData.evidenceName || !formData.evidenceType || !formData.location || !formData.status) {
-      alert('Please fill all fields!');
+      alert('Please fill all mandatory fields!');
       return;
     }
     setLoading(true);
@@ -77,7 +82,7 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
 
   const handleEditSubmit = async (id) => {
     if (!formData.evidenceName || !formData.evidenceType || !formData.location || !formData.status) {
-      alert('Please fill all fields!');
+      alert('Please fill all mandatory fields!');
       return;
     }
     setLoading(true);
@@ -101,7 +106,7 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
       const formDataObj = new FormData();
       Array.from(files).forEach((file) => formDataObj.append('images', file));
       await evidenceApi.uploadImages(id, formDataObj);
-      onUpdate();
+      onUpdate(); 
     } catch (error) {
       console.error('Error uploading images:', error);
       alert('Failed to upload images');
@@ -177,6 +182,14 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
                       {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <textarea placeholder="Description" value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-2 py-1 border rounded" rows={2}></textarea>
+
+                    {/* New Fields */}
+                    <input type="text" placeholder="Submitted / Found By" value={formData.submittedBy || ''} onChange={e => setFormData({ ...formData, submittedBy: e.target.value })} className="w-full px-2 py-1 border rounded"/>
+                    <input type="text" placeholder="Received / Logged By Officer" value={formData.officerName || ''} onChange={e => setFormData({ ...formData, officerName: e.target.value })} className="w-full px-2 py-1 border rounded"/>
+                    <input type="text" placeholder="Complainant / Reporting Party" value={formData.complainantName || ''} onChange={e => setFormData({ ...formData, complainantName: e.target.value })} className="w-full px-2 py-1 border rounded"/>
+                    <input type="text" placeholder="Contact Info" value={formData.contact || ''} onChange={e => setFormData({ ...formData, contact: e.target.value })} className="w-full px-2 py-1 border rounded"/>
+                    <textarea placeholder="Chain of Custody Notes" value={formData.chainOfCustody || ''} onChange={e => setFormData({ ...formData, chainOfCustody: e.target.value })} className="w-full px-2 py-1 border rounded" rows={2}></textarea>
+
                     <input type="file" multiple onChange={e => handleUploadImages(item._id, e.target.files)} className="w-full"/>
                     <div className="flex gap-2">
                       {addingId === item._id ? (
@@ -238,7 +251,6 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
         </div>
       )}
 
-      {/* Evidence Modal */}
       {selectedEvidence && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start pt-10 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative border-2 border-gray-300">
@@ -246,36 +258,30 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* FIR Header */}
             <div className="text-center border-b-2 pb-4 mb-4">
               <h1 className="text-3xl font-bold">POLICE DEPARTMENT</h1>
               <p className="text-gray-700 font-semibold">Evidence Record / FIR Report</p>
               <p className="text-sm text-gray-500">Case No: {selectedEvidence.evidenceId}</p>
             </div>
 
-            {/* FIR Content */}
             <div className="space-y-4 text-sm text-gray-800">
               <div className="grid grid-cols-2 gap-4">
                 <p><strong>Date & Time Recorded:</strong> {formatDate(selectedEvidence.timestamp)}</p>
                 <p><strong>Status:</strong> <span className={getStatusBadgeClass(selectedEvidence.status)}>{selectedEvidence.status}</span></p>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <p><strong>Tag ID:</strong> {selectedEvidence.tagId}</p>
                 <p><strong>Evidence Type:</strong> {selectedEvidence.evidenceType}</p>
               </div>
-
               <p><strong>Evidence Name:</strong> {selectedEvidence.evidenceName}</p>
               <p><strong>Location Found / Stored:</strong> {selectedEvidence.location}</p>
               <p><strong>Description / Observations:</strong> {selectedEvidence.description || '-'}</p>
-
               <p><strong>Submitted / Found By:</strong> {selectedEvidence.submittedBy || 'N/A'}</p>
-              <p><strong>Received / Logged By Officer:</strong> {selectedEvidence.officerName || 'Admin'}</p>
+              <p><strong>Received / Logged By Officer:</strong> {selectedEvidence.officerName || 'N/A'}</p>
               <p><strong>Complainant / Reporting Party:</strong> {selectedEvidence.complainantName || 'N/A'}</p>
               <p><strong>Contact Info:</strong> {selectedEvidence.contact || 'N/A'}</p>
               <p><strong>Chain of Custody Notes:</strong> {selectedEvidence.chainOfCustody || 'N/A'}</p>
 
-              {/* Uploaded Images */}
               {selectedEvidence.images && selectedEvidence.images.length > 0 && (
                 <div>
                   <strong>Attached Images:</strong>
@@ -288,7 +294,6 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
               )}
             </div>
 
-            {/* Officer Signature Footer */}
             <div className="mt-6 border-t pt-4 text-right text-sm text-gray-700">
               <p>Officer In-Charge:</p>
               <p>Admin</p>
@@ -297,7 +302,6 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
