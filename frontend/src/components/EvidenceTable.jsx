@@ -33,7 +33,6 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
 
   const formatDate = (date) => new Date(date).toLocaleString();
 
-  // Open password modal for editing
   const openPasswordModal = (item) => {
     setPasswordModal({ open: true, item });
     setPasswordInput('');
@@ -64,7 +63,7 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
     }
     setLoading(true);
     try {
-      await evidenceApi.update(id, formData); // Add or update evidence
+      await evidenceApi.update(id, formData);
       onUpdate();
       setAddingId(null);
       setFormData({});
@@ -102,7 +101,7 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
       const formDataObj = new FormData();
       Array.from(files).forEach((file) => formDataObj.append('images', file));
       await evidenceApi.uploadImages(id, formDataObj);
-      onUpdate(); 
+      onUpdate();
     } catch (error) {
       console.error('Error uploading images:', error);
       alert('Failed to upload images');
@@ -239,64 +238,65 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
         </div>
       )}
 
-  {selectedEvidence && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start pt-10 z-50 overflow-y-auto">
-    <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative border-2 border-gray-300">
-      <button onClick={() => setSelectedEvidence(null)} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-700">
-        <X className="w-5 h-5" />
-      </button>
+      {/* Evidence Modal */}
+      {selectedEvidence && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start pt-10 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative border-2 border-gray-300">
+            <button onClick={() => setSelectedEvidence(null)} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-700">
+              <X className="w-5 h-5" />
+            </button>
 
-      {/* FIR Header */}
-      <div className="text-center border-b-2 pb-4 mb-4">
-        <h1 className="text-3xl font-bold">POLICE DEPARTMENT</h1>
-        <p className="text-gray-700 font-semibold">Evidence Record / FIR Report</p>
-        <p className="text-sm text-gray-500">Case No: {selectedEvidence.evidenceId}</p>
-      </div>
+            {/* FIR Header */}
+            <div className="text-center border-b-2 pb-4 mb-4">
+              <h1 className="text-3xl font-bold">POLICE DEPARTMENT</h1>
+              <p className="text-gray-700 font-semibold">Evidence Record / FIR Report</p>
+              <p className="text-sm text-gray-500">Case No: {selectedEvidence.evidenceId}</p>
+            </div>
 
-      {/* FIR Content */}
-      <div className="space-y-4 text-sm text-gray-800">
-        <div className="grid grid-cols-2 gap-4">
-          <p><strong>Date & Time Recorded:</strong> {formatDate(selectedEvidence.timestamp)}</p>
-          <p><strong>Status:</strong> <span className={getStatusBadgeClass(selectedEvidence.status)}>{selectedEvidence.status}</span></p>
-        </div>
+            {/* FIR Content */}
+            <div className="space-y-4 text-sm text-gray-800">
+              <div className="grid grid-cols-2 gap-4">
+                <p><strong>Date & Time Recorded:</strong> {formatDate(selectedEvidence.timestamp)}</p>
+                <p><strong>Status:</strong> <span className={getStatusBadgeClass(selectedEvidence.status)}>{selectedEvidence.status}</span></p>
+              </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <p><strong>Tag ID:</strong> {selectedEvidence.tagId}</p>
-          <p><strong>Evidence Type:</strong> {selectedEvidence.evidenceType}</p>
-        </div>
+              <div className="grid grid-cols-2 gap-4">
+                <p><strong>Tag ID:</strong> {selectedEvidence.tagId}</p>
+                <p><strong>Evidence Type:</strong> {selectedEvidence.evidenceType}</p>
+              </div>
 
-        <p><strong>Evidence Name:</strong> {selectedEvidence.evidenceName}</p>
-        <p><strong>Location Found / Stored:</strong> {selectedEvidence.location}</p>
-        <p><strong>Description / Observations:</strong> {selectedEvidence.description || '-'}</p>
+              <p><strong>Evidence Name:</strong> {selectedEvidence.evidenceName}</p>
+              <p><strong>Location Found / Stored:</strong> {selectedEvidence.location}</p>
+              <p><strong>Description / Observations:</strong> {selectedEvidence.description || '-'}</p>
 
-        <p><strong>Submitted / Found By:</strong> {selectedEvidence.submittedBy || 'N/A'}</p>
-        <p><strong>Received / Logged By Officer:</strong> {selectedEvidence.officerName || 'N/A'}</p>
-        <p><strong>Complainant / Reporting Party:</strong> {selectedEvidence.complainantName || 'N/A'}</p>
-        <p><strong>Contact Info:</strong> {selectedEvidence.contact || 'N/A'}</p>
-        <p><strong>Chain of Custody Notes:</strong> {selectedEvidence.chainOfCustody || 'N/A'}</p>
+              <p><strong>Submitted / Found By:</strong> {selectedEvidence.submittedBy || 'N/A'}</p>
+              <p><strong>Received / Logged By Officer:</strong> {selectedEvidence.officerName || 'Admin'}</p>
+              <p><strong>Complainant / Reporting Party:</strong> {selectedEvidence.complainantName || 'N/A'}</p>
+              <p><strong>Contact Info:</strong> {selectedEvidence.contact || 'N/A'}</p>
+              <p><strong>Chain of Custody Notes:</strong> {selectedEvidence.chainOfCustody || 'N/A'}</p>
 
-        {/* Uploaded Images */}
-        {selectedEvidence.images && selectedEvidence.images.length > 0 && (
-          <div>
-            <strong>Attached Images:</strong>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {selectedEvidence.images.map((img, idx) => (
-                <img key={idx} src={img} alt={`evidence-${idx}`} className="w-32 h-32 object-cover border rounded" />
-              ))}
+              {/* Uploaded Images */}
+              {selectedEvidence.images && selectedEvidence.images.length > 0 && (
+                <div>
+                  <strong>Attached Images:</strong>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedEvidence.images.map((img, idx) => (
+                      <img key={idx} src={img} alt={`evidence-${idx}`} className="w-32 h-32 object-cover border rounded" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Officer Signature Footer */}
+            <div className="mt-6 border-t pt-4 text-right text-sm text-gray-700">
+              <p>Officer In-Charge:</p>
+              <p>Admin</p>
+              <p>{new Date().toLocaleDateString()}</p>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Officer Signature Footer */}
-      <div className="mt-6 border-t pt-4 text-right text-sm text-gray-700">
-        <p>Officer In-Charge:</p>
-        <p>__________________________</p>
-        <p>Date & Signature</p>
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
     </div>
   );

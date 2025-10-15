@@ -3,11 +3,26 @@ import path from 'path';
 
 export const receiveFromHardware = async (req, res) => {
   try {
-    const { tagId, location, status, description, evidenceName, evidenceType } = req.body;
+    const {
+      tagId,
+      location,
+      status,
+      description,
+      evidenceName,
+      evidenceType,
+      submittedBy,
+      officerName,
+      complainantName,
+      contact,
+      chainOfCustody
+    } = req.body;
+
     if (!tagId || !location || !evidenceName || !evidenceType) {
       return res.status(400).json({ message: 'Tag ID, location, evidence name, and evidence type are required' });
     }
+
     const evidenceId = `EV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
     const evidence = new Evidence({
       evidenceId,
       tagId,
@@ -16,10 +31,16 @@ export const receiveFromHardware = async (req, res) => {
       location,
       status: status || 'Collected',
       description: description || '',
+      submittedBy: submittedBy || '',
+      officerName: officerName || '',
+      complainantName: complainantName || '',
+      contact: contact || '',
+      chainOfCustody: chainOfCustody || '',
       timestamp: new Date(),
       isNew: true,
       images: []
     });
+
     await evidence.save();
     res.status(201).json({ message: 'Evidence data received successfully', data: evidence });
   } catch (error) {
@@ -51,16 +72,36 @@ export const getEvidenceById = async (req, res) => {
 
 export const updateEvidence = async (req, res) => {
   try {
-    const { status, location, description, evidenceName, evidenceType } = req.body;
+    const {
+      status,
+      location,
+      description,
+      evidenceName,
+      evidenceType,
+      submittedBy,
+      officerName,
+      complainantName,
+      contact,
+      chainOfCustody
+    } = req.body;
+
     const updateData = {};
     if (status) updateData.status = status;
     if (location) updateData.location = location;
     if (description !== undefined) updateData.description = description;
     if (evidenceName) updateData.evidenceName = evidenceName;
     if (evidenceType) updateData.evidenceType = evidenceType;
+    if (submittedBy !== undefined) updateData.submittedBy = submittedBy;
+    if (officerName !== undefined) updateData.officerName = officerName;
+    if (complainantName !== undefined) updateData.complainantName = complainantName;
+    if (contact !== undefined) updateData.contact = contact;
+    if (chainOfCustody !== undefined) updateData.chainOfCustody = chainOfCustody;
+
     updateData.isNew = false;
+
     const evidence = await Evidence.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
     if (!evidence) return res.status(404).json({ message: 'Evidence not found' });
+
     res.status(200).json(evidence);
   } catch (error) {
     console.error('Error updating evidence:', error);
