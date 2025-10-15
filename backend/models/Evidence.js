@@ -17,7 +17,6 @@ const evidenceSchema = new mongoose.Schema({
   evidenceType: {
     type: String,
     enum: [
-      'Select Type',
       'Physical',
       'Digital',
       'Documentary',
@@ -44,6 +43,10 @@ const evidenceSchema = new mongoose.Schema({
   description: {
     type: String,
     default: ''
+  },
+  images: {
+    type: [String],
+    default: []
   },
   isNew: {
     type: Boolean,

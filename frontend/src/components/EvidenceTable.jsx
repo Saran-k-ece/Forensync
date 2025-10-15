@@ -1,17 +1,24 @@
 import { useState } from 'react';
-import { Edit2, Trash2, AlertCircle, X } from 'lucide-react';
+import { Trash2, X, Edit2 } from 'lucide-react';
 import { evidenceApi } from '../services/api';
 
 const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
+  const [addingId, setAddingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
+  const [formData, setFormData] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState(null);
+
   const [passwordModal, setPasswordModal] = useState({ open: false, item: null });
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  const [deleteModal, setDeleteModal] = useState({ open: false, item: null });
+  const [deletePasswordInput, setDeletePasswordInput] = useState('');
+  const [deletePasswordError, setDeletePasswordError] = useState('');
+
   const ADMIN_PASSWORD = 'admin123';
+  const statusOptions = ['Collected', 'In Transit', 'Stored', 'Under Analysis', 'Released'];
 
   const getStatusBadgeClass = (status) => {
     const classes = {
@@ -26,6 +33,7 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
 
   const formatDate = (date) => new Date(date).toLocaleString();
 
+  // Open password modal for editing
   const openPasswordModal = (item) => {
     setPasswordModal({ open: true, item });
     setPasswordInput('');
@@ -36,12 +44,12 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
     if (passwordInput === ADMIN_PASSWORD) {
       const item = passwordModal.item;
       setEditingId(item._id);
-      setEditForm({
-        status: item.status,
-        location: item.location,
-        description: item.description || '',
+      setFormData({
         evidenceName: item.evidenceName,
         evidenceType: item.evidenceType,
+        location: item.location,
+        status: item.status,
+        description: item.description || '',
       });
       setPasswordModal({ open: false, item: null });
     } else {
@@ -49,52 +57,89 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
     }
   };
 
-  const handleSave = async (id) => {
+  const handleAddSubmit = async (id) => {
+    if (!formData.evidenceName || !formData.evidenceType || !formData.location || !formData.status) {
+      alert('Please fill all fields!');
+      return;
+    }
     setLoading(true);
     try {
-      await evidenceApi.update(id, editForm);
-      await evidenceApi.markViewed(id);
+      await evidenceApi.update(id, formData); // Add or update evidence
+      onUpdate();
+      setAddingId(null);
+      setFormData({});
+    } catch (error) {
+      console.error('Error adding evidence:', error);
+      alert('Failed to add evidence');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (id) => {
+    if (!formData.evidenceName || !formData.evidenceType || !formData.location || !formData.status) {
+      alert('Please fill all fields!');
+      return;
+    }
+    setLoading(true);
+    try {
+      await evidenceApi.update(id, formData);
       onUpdate();
       setEditingId(null);
+      setFormData({});
     } catch (error) {
-      console.error('Error updating evidence:', error);
+      console.error('Error editing evidence:', error);
       alert('Failed to update evidence');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this evidence?')) return;
+  const handleUploadImages = async (id, files) => {
+    if (!files || files.length === 0) return;
     setLoading(true);
     try {
-      await evidenceApi.delete(id);
-      onDelete();
+      const formDataObj = new FormData();
+      Array.from(files).forEach((file) => formDataObj.append('images', file));
+      await evidenceApi.uploadImages(id, formDataObj);
+      onUpdate(); 
     } catch (error) {
-      console.error('Error deleting evidence:', error);
-      alert('Failed to delete evidence');
+      console.error('Error uploading images:', error);
+      alert('Failed to upload images');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    setEditingId(null);
-    setEditForm({});
+  const openDeleteModal = (item) => {
+    setDeleteModal({ open: true, item });
+    setDeletePasswordInput('');
+    setDeletePasswordError('');
   };
 
-  const closeModal = () => setSelectedEvidence(null);
+  const handleDeleteSubmit = async () => {
+    if (deletePasswordInput === ADMIN_PASSWORD) {
+      const id = deleteModal.item._id;
+      setLoading(true);
+      try {
+        await evidenceApi.delete(id);
+        onDelete();
+      } catch (error) {
+        console.error('Error deleting evidence:', error);
+        alert('Failed to delete evidence');
+      } finally {
+        setLoading(false);
+        setDeleteModal({ open: false, item: null });
+        setDeletePasswordInput('');
+        setDeletePasswordError('');
+      }
+    } else {
+      setDeletePasswordError('Incorrect password. Access denied!');
+    }
+  };
 
   if (evidence.length === 0) {
-    return (
-      <div className="p-8 text-center bg-white rounded shadow">
-        <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Evidence Found</h3>
-        <p className="text-gray-500">
-          Evidence data will appear here when received from hardware devices.
-        </p>
-      </div>
-    );
+    return <div className="p-8 text-center bg-white rounded shadow"><p className="text-gray-500">No Evidence Found</p></div>;
   }
 
   return (
@@ -102,32 +147,24 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            {['ID', 'Tag ID', 'Name', 'Type', 'Timestamp', 'Location', 'Status', 'Description', 'Actions'].map((title) => (
+            {['ID', 'Tag ID', 'Timestamp', 'Status', 'Add/Edit', 'Delete'].map(title => (
               <th key={title} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{title}</th>
             ))}
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {evidence.map((item) => (
-            <tr key={item._id} className={`transition-colors ${item.isNew ? 'bg-blue-50' : ''} hover:bg-gray-50`}>
-              {editingId === item._id ? (
-                <>
-                  <td className="px-4 py-3">{item.evidenceId}</td>
-                  <td className="px-4 py-3">{item.tagId}</td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="text"
-                      value={editForm.evidenceName}
-                      onChange={(e) => setEditForm({ ...editForm, evidenceName: e.target.value })}
-                      className="w-full px-2 py-1 border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={editForm.evidenceType}
-                      onChange={(e) => setEditForm({ ...editForm, evidenceType: e.target.value })}
-                      className="w-full px-2 py-1 border rounded"
-                    >
+          {evidence.map(item => (
+            <tr key={item._id} className="hover:bg-gray-50 transition-colors">
+              <td className="px-4 py-3 cursor-pointer text-blue-600 hover:underline" onClick={() => setSelectedEvidence(item)}>{item.evidenceId}</td>
+              <td className="px-4 py-3">{item.tagId}</td>
+              <td className="px-4 py-3">{formatDate(item.timestamp)}</td>
+              <td className="px-4 py-3"><span className={getStatusBadgeClass(item.status)}>{item.status}</span></td>
+              <td className="px-4 py-3">
+                {addingId === item._id || editingId === item._id ? (
+                  <div className="space-y-2">
+                    <input type="text" placeholder="Evidence Name" value={formData.evidenceName || ''} onChange={e => setFormData({ ...formData, evidenceName: e.target.value })} className="w-full px-2 py-1 border rounded"/>
+                    <select value={formData.evidenceType || ''} onChange={e => setFormData({ ...formData, evidenceType: e.target.value })} className="w-full px-2 py-1 border rounded">
+                      <option value="">Select Type</option>
                       <option value="Physical">Physical</option>
                       <option value="Digital">Digital</option>
                       <option value="Documentary">Documentary</option>
@@ -136,77 +173,45 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
                       <option value="Trace">Trace</option>
                       <option value="Audio/Visual">Audio/Visual</option>
                     </select>
-                  </td>
-                  <td className="px-4 py-3">{formatDate(item.timestamp)}</td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="text"
-                      value={editForm.location}
-                      onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                      className="w-full px-2 py-1 border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={editForm.status}
-                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                      className="w-full px-2 py-1 border rounded"
-                    >
-                      {['Collected', 'In Transit', 'Stored', 'Under Analysis', 'Released'].map((status) => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
+                    <input type="text" placeholder="Location" value={formData.location || ''} onChange={e => setFormData({ ...formData, location: e.target.value })} className="w-full px-2 py-1 border rounded"/>
+                    <select value={formData.status || ''} onChange={e => setFormData({ ...formData, status: e.target.value })} className="w-full px-2 py-1 border rounded">
+                      {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <textarea
-                      value={editForm.description}
-                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                      className="w-full px-2 py-1 border rounded"
-                      rows={2}
-                      placeholder="Description"
-                    />
-                  </td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <button onClick={() => handleSave(item._id)} disabled={loading} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">Save</button>
-                    <button onClick={handleCancel} disabled={loading} className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 disabled:opacity-50">Cancel</button>
-                  </td>
-                </>
-              ) : (
-                <>
-                  <td className="px-4 py-3">{item.evidenceId}</td>
-                  <td className="px-4 py-3">{item.tagId}</td>
-                  <td className="px-4 py-3">{item.evidenceName}</td>
-                  <td className="px-4 py-3">{item.evidenceType}</td>
-                  <td className="px-4 py-3">{formatDate(item.timestamp)}</td>
-                  <td className="px-4 py-3">{item.location}</td>
-                  <td className="px-4 py-3"><span className={getStatusBadgeClass(item.status)}>{item.status}</span></td>
-                  <td className="px-4 py-3">{item.description || '-'}</td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <button onClick={() => openPasswordModal(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(item._id)} className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"><Trash2 className="w-4 h-4" /></button>
-                  </td>
-                </>
-              )}
+                    <textarea placeholder="Description" value={formData.description || ''} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full px-2 py-1 border rounded" rows={2}></textarea>
+                    <input type="file" multiple onChange={e => handleUploadImages(item._id, e.target.files)} className="w-full"/>
+                    <div className="flex gap-2">
+                      {addingId === item._id ? (
+                        <button onClick={() => handleAddSubmit(item._id)} disabled={loading} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Save</button>
+                      ) : (
+                        <button onClick={() => handleEditSubmit(item._id)} disabled={loading} className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">Update</button>
+                      )}
+                      <button onClick={() => { setAddingId(null); setEditingId(null); setFormData({}); }} className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={() => setAddingId(item._id)} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Add</button>
+                    <button onClick={() => openPasswordModal(item)} className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 flex items-center gap-1"><Edit2 className="w-4 h-4"/>Edit</button>
+                  </div>
+                )}
+              </td>
+              <td className="px-4 py-3">
+                <button onClick={() => openDeleteModal(item)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Password Modal */}
+      {/* Password Modal for Editing */}
       {passwordModal.open && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg p-6 w-80 relative shadow-lg">
             <button onClick={() => setPasswordModal({ open: false, item: null })} className="absolute top-2 right-2 p-1 text-gray-500 hover:text-gray-700">
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5"/>
             </button>
             <h2 className="text-lg font-bold mb-4">Enter Admin Password</h2>
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Password"
-              className="w-full px-3 py-2 border rounded mb-2"
-            />
+            <input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} placeholder="Password" className="w-full px-3 py-2 border rounded mb-2"/>
             {passwordError && <p className="text-red-600 text-sm mb-2">{passwordError}</p>}
             <div className="flex justify-end gap-2">
               <button onClick={() => setPasswordModal({ open: false, item: null })} className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
@@ -216,27 +221,83 @@ const EvidenceTable = ({ evidence, onUpdate, onDelete }) => {
         </div>
       )}
 
-      {/* Detail Modal */}
-      {selectedEvidence && (
+      {/* Delete Modal */}
+      {deleteModal.open && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 relative shadow-lg">
-            <button onClick={closeModal} className="absolute top-2 right-2 p-1 text-gray-500 hover:text-gray-700">
-              <X className="w-5 h-5" />
+          <div className="bg-white rounded-lg p-6 w-80 relative shadow-lg">
+            <button onClick={() => setDeleteModal({ open: false, item: null })} className="absolute top-2 right-2 p-1 text-gray-500 hover:text-gray-700">
+              <X className="w-5 h-5"/>
             </button>
-            <h2 className="text-lg font-bold mb-4">Evidence Details</h2>
-            <div className="space-y-2 text-sm">
-              <p><strong>ID:</strong> {selectedEvidence.evidenceId}</p>
-              <p><strong>Tag ID:</strong> {selectedEvidence.tagId}</p>
-              <p><strong>Name:</strong> {selectedEvidence.evidenceName}</p>
-              <p><strong>Type:</strong> {selectedEvidence.evidenceType}</p>
-              <p><strong>Status:</strong> <span className={getStatusBadgeClass(selectedEvidence.status)}>{selectedEvidence.status}</span></p>
-              <p><strong>Location:</strong> {selectedEvidence.location}</p>
-              <p><strong>Description:</strong> {selectedEvidence.description || '-'}</p>
-              <p><strong>Timestamp:</strong> {formatDate(selectedEvidence.timestamp)}</p>
+            <h2 className="text-lg font-bold mb-4">Enter Admin Password to Delete</h2>
+            <input type="password" value={deletePasswordInput} onChange={e => setDeletePasswordInput(e.target.value)} placeholder="Password" className="w-full px-3 py-2 border rounded mb-2"/>
+            {deletePasswordError && <p className="text-red-600 text-sm mb-2">{deletePasswordError}</p>}
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteModal({ open: false, item: null })} className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+              <button onClick={handleDeleteSubmit} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
             </div>
           </div>
         </div>
       )}
+
+  {selectedEvidence && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start pt-10 z-50 overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative border-2 border-gray-300">
+      <button onClick={() => setSelectedEvidence(null)} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-700">
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* FIR Header */}
+      <div className="text-center border-b-2 pb-4 mb-4">
+        <h1 className="text-3xl font-bold">POLICE DEPARTMENT</h1>
+        <p className="text-gray-700 font-semibold">Evidence Record / FIR Report</p>
+        <p className="text-sm text-gray-500">Case No: {selectedEvidence.evidenceId}</p>
+      </div>
+
+      {/* FIR Content */}
+      <div className="space-y-4 text-sm text-gray-800">
+        <div className="grid grid-cols-2 gap-4">
+          <p><strong>Date & Time Recorded:</strong> {formatDate(selectedEvidence.timestamp)}</p>
+          <p><strong>Status:</strong> <span className={getStatusBadgeClass(selectedEvidence.status)}>{selectedEvidence.status}</span></p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <p><strong>Tag ID:</strong> {selectedEvidence.tagId}</p>
+          <p><strong>Evidence Type:</strong> {selectedEvidence.evidenceType}</p>
+        </div>
+
+        <p><strong>Evidence Name:</strong> {selectedEvidence.evidenceName}</p>
+        <p><strong>Location Found / Stored:</strong> {selectedEvidence.location}</p>
+        <p><strong>Description / Observations:</strong> {selectedEvidence.description || '-'}</p>
+
+        <p><strong>Submitted / Found By:</strong> {selectedEvidence.submittedBy || 'N/A'}</p>
+        <p><strong>Received / Logged By Officer:</strong> {selectedEvidence.officerName || 'N/A'}</p>
+        <p><strong>Complainant / Reporting Party:</strong> {selectedEvidence.complainantName || 'N/A'}</p>
+        <p><strong>Contact Info:</strong> {selectedEvidence.contact || 'N/A'}</p>
+        <p><strong>Chain of Custody Notes:</strong> {selectedEvidence.chainOfCustody || 'N/A'}</p>
+
+        {/* Uploaded Images */}
+        {selectedEvidence.images && selectedEvidence.images.length > 0 && (
+          <div>
+            <strong>Attached Images:</strong>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {selectedEvidence.images.map((img, idx) => (
+                <img key={idx} src={img} alt={`evidence-${idx}`} className="w-32 h-32 object-cover border rounded" />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Officer Signature Footer */}
+      <div className="mt-6 border-t pt-4 text-right text-sm text-gray-700">
+        <p>Officer In-Charge:</p>
+        <p>__________________________</p>
+        <p>Date & Signature</p>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
