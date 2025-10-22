@@ -59,7 +59,7 @@ const Dashboard = () => {
   const notifyNewEvidence = (entry) => {
     setNotifications((prev) => [
       ...prev,
-      { id: entry._id, message: `New evidence received: ${entry.evidenceName || 'Unknown'}`, entry },
+       { id: entry._id, message: `New evidence received with Tag ID: ${entry.tagId || 'Unknown'}`, entry },
     ]);
 
     // Auto-remove notification after 10 seconds
